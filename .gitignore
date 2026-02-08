@@ -1,0 +1,9 @@
+
+company.log
+chat.log
+.env
+utils.py
+templates
+drf_proj/settings.py
+
+    

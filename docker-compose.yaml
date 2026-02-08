@@ -1,0 +1,97 @@
+
+
+services:
+
+    postgres:
+      image: postgres:17
+      container_name: postgres
+
+      restart: always
+      
+      environment:
+          POSTGRES_PASSWORD: ${DB_PASSWORD}
+          POSTGRES_DB: ${DB_NAME}
+          POSTGRES_USER: ${DB_USER}
+          
+      healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} "]
+          interval: 10s
+          retries: 5
+          timeout: 10s
+          start_period: 10s
+
+
+      
+      volumes:
+        - postgres_db:/var/lib/postgresql/data/
+
+      ports:
+        - 5432:5432
+        
+      networks:
+        - main
+
+    redis:
+      image: redis:7
+
+      volumes:
+        - reddis_db:/var/lib/redis/data/
+        
+      networks:
+        - main
+        
+      ports:
+        - 6379:6379
+      
+      restart: always
+        
+      
+    app:
+      build: .
+      container_name: web
+
+      depends_on:
+        postgres:
+          condition: service_healthy
+          restart: true
+
+      networks:
+        - main
+
+      volumes:
+        - ./drf_proj:/app
+        - ./static:/app/staticfiles
+
+      expose:
+        - 8000
+        
+      env_file:
+        - .env
+
+      restart: always
+    
+    nginx:
+      build:
+        context: ./nginx/
+        dockerfile: Dockerfile
+      
+      volumes:
+        - ./nginx/conf.d/:/etc/nginx/conf.d/
+        - ./static:/home/app/staticfiles/
+      
+      ports:
+        - 80:80
+      
+      depends_on:
+        - app
+      
+      networks:
+        - main
+        
+      
+volumes:
+  postgres_db:
+  reddis_db:
+
+networks:
+  main:
